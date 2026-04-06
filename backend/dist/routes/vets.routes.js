@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.vetsRouter = void 0;
+const express_1 = require("express");
+const vets_controller_1 = require("../controllers/vets.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const vets_schemas_1 = require("../schemas/vets.schemas");
+exports.vetsRouter = (0, express_1.Router)();
+exports.vetsRouter.post("/vets", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe"), (0, validate_middleware_1.validate)(vets_schemas_1.createVetSchema), vets_controller_1.vetsController.create);
+exports.vetsRouter.get("/vets", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe", "veterinario", "recepcionista", "asistente"), vets_controller_1.vetsController.list);
+exports.vetsRouter.patch("/vets/:id", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe"), vets_controller_1.vetsController.update);
+exports.vetsRouter.post("/vets/:id/assistants", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe"), (0, validate_middleware_1.validate)(vets_schemas_1.addAssistantSchema), vets_controller_1.vetsController.addAssistant);
+exports.vetsRouter.delete("/vets/:id/assistants/:assistantUserId", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe"), vets_controller_1.vetsController.removeAssistant);

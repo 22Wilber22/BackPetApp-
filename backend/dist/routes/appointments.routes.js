@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.appointmentsRouter = void 0;
+const express_1 = require("express");
+const appointments_controller_1 = require("../controllers/appointments.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const appointments_schemas_1 = require("../schemas/appointments.schemas");
+exports.appointmentsRouter = (0, express_1.Router)();
+exports.appointmentsRouter.post("/appointments", auth_middleware_1.requireAuth, (0, validate_middleware_1.validate)(appointments_schemas_1.createAppointmentSchema), appointments_controller_1.appointmentsController.create);
+exports.appointmentsRouter.get("/appointments/my", auth_middleware_1.requireAuth, appointments_controller_1.appointmentsController.my);
+exports.appointmentsRouter.patch("/appointments/:id/status", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe", "veterinario", "recepcionista", "asistente"), (0, validate_middleware_1.validate)(appointments_schemas_1.statusUpdateSchema), appointments_controller_1.appointmentsController.updateStatus);
+exports.appointmentsRouter.get("/appointments/vet/:vetId/patients", auth_middleware_1.requireAuth, (0, validate_middleware_1.validate)(appointments_schemas_1.vetPatientsSchema), appointments_controller_1.appointmentsController.vetPatients);

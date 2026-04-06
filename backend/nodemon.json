@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": ["dist", "test"],
+  "exec": "tsx src/server.ts",
+  "signal": "SIGTERM"
+}

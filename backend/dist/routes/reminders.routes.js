@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.remindersRouter = void 0;
+const express_1 = require("express");
+const reminders_controller_1 = require("../controllers/reminders.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+exports.remindersRouter = (0, express_1.Router)();
+exports.remindersRouter.post("/reminders", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.create);
+exports.remindersRouter.get("/reminders/pet/:petId", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.listByPet);
+exports.remindersRouter.patch("/reminders/:id", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.patch);
+exports.remindersRouter.delete("/reminders/:id", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.remove);
+exports.remindersRouter.post("/reminders/:id/dose-records", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.addDoseRecord);
+exports.remindersRouter.get("/reminders/:id/dose-records", auth_middleware_1.requireAuth, reminders_controller_1.remindersController.listDoseRecords);

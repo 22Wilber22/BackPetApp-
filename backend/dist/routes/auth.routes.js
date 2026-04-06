@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authRouter = void 0;
+const express_1 = require("express");
+const auth_controller_1 = require("../controllers/auth.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const rate_limit_middleware_1 = require("../middlewares/rate-limit.middleware");
+const auth_schemas_1 = require("../schemas/auth.schemas");
+exports.authRouter = (0, express_1.Router)();
+exports.authRouter.post("/auth/register-email", rate_limit_middleware_1.authRateLimit, (0, validate_middleware_1.validate)(auth_schemas_1.registerEmailSchema), auth_controller_1.authController.registerEmail);
+exports.authRouter.post("/auth/login-email", rate_limit_middleware_1.authRateLimit, auth_controller_1.authController.loginEmail);
+exports.authRouter.post("/auth/google", rate_limit_middleware_1.authRateLimit, (0, validate_middleware_1.validate)(auth_schemas_1.providerLoginSchema), auth_controller_1.authController.google);
+exports.authRouter.post("/auth/apple", rate_limit_middleware_1.authRateLimit, (0, validate_middleware_1.validate)(auth_schemas_1.providerLoginSchema), auth_controller_1.authController.apple);
+exports.authRouter.get("/auth/me", auth_middleware_1.requireAuth, auth_controller_1.authController.me);
+exports.authRouter.post("/auth/logout", auth_middleware_1.requireAuth, auth_controller_1.authController.logout);
