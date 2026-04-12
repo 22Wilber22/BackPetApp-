@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.usersRouter = void 0;
+const express_1 = require("express");
+const users_controller_1 = require("../controllers/users.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const users_schemas_1 = require("../schemas/users.schemas");
+exports.usersRouter = (0, express_1.Router)();
+exports.usersRouter.get("/users/me", auth_middleware_1.requireAuth, users_controller_1.usersController.getMe);
+exports.usersRouter.patch("/users/me", auth_middleware_1.requireAuth, (0, validate_middleware_1.validate)(users_schemas_1.patchMeSchema), users_controller_1.usersController.patchMe);
+exports.usersRouter.patch("/users/:uid/role", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin"), (0, validate_middleware_1.validate)(users_schemas_1.patchRoleSchema), users_controller_1.usersController.patchRole);
+exports.usersRouter.patch("/users/:uid/assign-assistant", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin"), (0, validate_middleware_1.validate)(users_schemas_1.assignAssistantSchema), users_controller_1.usersController.assignAssistant);

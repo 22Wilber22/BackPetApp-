@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.patientsRouter = void 0;
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const clinic_scope_middleware_1 = require("../middlewares/clinic-scope.middleware");
+const patients_controller_1 = require("../controllers/patients.controller");
+exports.patientsRouter = (0, express_1.Router)();
+exports.patientsRouter.get("/patients", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.list);
+exports.patientsRouter.get("/patients/:petId", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.getById);
+exports.patientsRouter.post("/patients/:petId/history", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.addHistory);
+exports.patientsRouter.get("/patients/:petId/history", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.listHistory);
+exports.patientsRouter.post("/patients/:petId/history/:recordId/revisions", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.addHistoryRevision);
+exports.patientsRouter.post("/patients/:petId/treatments", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.createTreatment);
+exports.patientsRouter.patch("/patients/:petId/treatments/:id", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.patchTreatment);
+exports.patientsRouter.get("/patients/:petId/treatments", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, patients_controller_1.patientsController.listTreatments);

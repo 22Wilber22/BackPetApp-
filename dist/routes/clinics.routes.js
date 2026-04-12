@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.clinicsRouter = void 0;
+const express_1 = require("express");
+const clinics_controller_1 = require("../controllers/clinics.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const clinics_schemas_1 = require("../schemas/clinics.schemas");
+exports.clinicsRouter = (0, express_1.Router)();
+exports.clinicsRouter.post("/clinics", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin"), (0, validate_middleware_1.validate)(clinics_schemas_1.createClinicSchema), clinics_controller_1.clinicsController.create);
+exports.clinicsRouter.get("/clinics", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe", "veterinario", "recepcionista", "asistente"), clinics_controller_1.clinicsController.list);
+exports.clinicsRouter.patch("/clinics/:id", auth_middleware_1.requireAuth, (0, role_middleware_1.requireRole)("admin", "jefe"), clinics_controller_1.clinicsController.update);
