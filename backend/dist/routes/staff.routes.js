@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.staffRouter = void 0;
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const clinic_scope_middleware_1 = require("../middlewares/clinic-scope.middleware");
+const staff_controller_1 = require("../controllers/staff.controller");
+exports.staffRouter = (0, express_1.Router)();
+exports.staffRouter.get("/staff", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, staff_controller_1.staffController.listTeam);
+exports.staffRouter.get("/staff/:uid/patients", auth_middleware_1.requireAuth, clinic_scope_middleware_1.requireClinicContext, staff_controller_1.staffController.patientsByVet);
