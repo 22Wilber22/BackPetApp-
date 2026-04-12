@@ -7,6 +7,18 @@ const pets_service_1 = require("../services/pets.service");
 const users_service_1 = require("../services/users.service");
 exports.appointmentsController = {
     create: async (req, res) => {
+        const validatedBody = req.validated?.body;
+        const body = (validatedBody ?? req.body);
+        const normalizeOptionalId = (value) => {
+            if (typeof value !== "string") {
+                return "";
+            }
+            const trimmed = value.trim();
+            if (!trimmed || trimmed === "undefined" || trimmed === "null") {
+                return "";
+            }
+            return trimmed;
+        };
         const role = req.user?.role;
         const uid = req.user?.uid;
         const clinicId = req.user?.clinicId ?? null;
@@ -17,31 +29,38 @@ exports.appointmentsController = {
         if (!canCreate) {
             throw new api_error_1.ApiError(403, "FORBIDDEN", "Role cannot create appointments");
         }
-        const pet = await pets_service_1.petsService.getById(String(req.body.petId));
+        const pet = await pets_service_1.petsService.getById(String(body.petId));
         if (!pet) {
             throw new api_error_1.ApiError(404, "NOT_FOUND", "Pet not found");
         }
         // DEBUG LOG
         console.log(`[APPOINTMENT CREATE] User ${uid} (${role}) creating appointment for pet ${pet.id} (clinicId: ${pet.clinicId})`);
         const payload = {
-            ownerId: String(req.body.ownerId ?? pet.ownerId),
-            petId: String(req.body.petId),
-            petName: String(req.body.petName ?? pet.nombre),
-            ownerName: String(req.body.ownerName ?? ""),
-            vetName: String(req.body.vetName ?? ""),
-            vetId: String(req.body.vetId ?? ""),
-            assistantIds: req.body.assistantIds ?? [],
-            clinicId: String(req.body.clinicId ?? pet.clinicId ?? ""),
-            type: String(req.body.type),
-            schedule: String(req.body.schedule),
-            reason: String(req.body.reason),
-            symptoms: req.body.symptoms ?? null,
-            notes: req.body.notes ?? null,
-            channel: req.body.channel ?? null,
-            sendReminder: Boolean(req.body.sendReminder)
+            ownerId: String(body.ownerId ?? pet.ownerId),
+            petId: String(body.petId),
+            petName: String(body.petName ?? pet.nombre),
+            ownerName: String(body.ownerName ?? ""),
+            vetName: String(body.vetName ?? ""),
+            vetId: normalizeOptionalId(body.vetId),
+            assistantIds: body.assistantIds ?? [],
+            clinicId: normalizeOptionalId(body.clinicId) || normalizeOptionalId(pet.clinicId),
+            type: String(body.type),
+            schedule: String(body.schedule),
+            reason: String(body.reason),
+            symptoms: body.symptoms ?? null,
+            notes: body.notes ?? null,
+            channel: body.channel ?? null,
+            sendReminder: Boolean(body.sendReminder)
         };
         if (role === "usuario") {
             payload.ownerId = uid;
+            // Public users are not tied to a single clinic account; infer clinic from selected vet when possible.
+            if (!payload.clinicId && payload.vetId) {
+                const vetUser = await users_service_1.usersService.getByUid(payload.vetId);
+                if (vetUser?.role === "veterinario" && vetUser.clinicId) {
+                    payload.clinicId = vetUser.clinicId;
+                }
+            }
         }
         if (role === "veterinario") {
             payload.vetId = uid;
@@ -66,11 +85,17 @@ exports.appointmentsController = {
             }
             payload.clinicId = clinicId;
         }
-        if (!payload.vetId) {
+        if (role !== "usuario" && !payload.vetId) {
             throw new api_error_1.ApiError(400, "INVALID_REQUEST", "vetId is required to create appointment");
         }
-        if (!payload.clinicId) {
-            throw new api_error_1.ApiError(400, "INVALID_REQUEST", "clinicId is required to create appointment");
+        if (!payload.clinicId && payload.vetId) {
+            const vetUser = await users_service_1.usersService.getByUid(payload.vetId);
+            if (vetUser?.clinicId) {
+                payload.clinicId = vetUser.clinicId;
+            }
+        }
+        if (!payload.clinicId && pet.clinicId) {
+            payload.clinicId = pet.clinicId;
         }
         const appointment = await appointments_service_1.appointmentsService.create(payload);
         res.status(201).json({ data: appointment });
