@@ -75,5 +75,25 @@ exports.petsService = {
             updatedAt: (0, time_1.nowIso)()
         }, { merge: true });
         return this.getById(id);
+    },
+    async listArchivedByOwner(ownerId) {
+        const query = await petsCollection
+            .where("ownerId", "==", ownerId)
+            .where("activo", "==", false)
+            .get();
+        return query.docs.map(mapDoc);
+    },
+    async reactivate(id) {
+        const pet = await this.getById(id);
+        if (!pet)
+            return null;
+        await petsCollection.doc(id).set({
+            activo: true,
+            archivedAt: null,
+            deleteAfterAt: null,
+            updatedAt: (0, time_1.nowIso)()
+        }, { merge: true });
+        await users_service_1.usersService.setHasPet(pet.ownerId, true);
+        return this.getById(id);
     }
 };

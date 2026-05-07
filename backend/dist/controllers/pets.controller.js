@@ -35,6 +35,26 @@ exports.petsController = {
         const updated = await pets_service_1.petsService.deactivate(id);
         res.status(200).json({ data: updated });
     },
+    listArchived: async (req, res) => {
+        const uid = req.user?.uid;
+        if (!uid) {
+            throw new api_error_1.ApiError(401, "UNAUTHORIZED", "Authentication required");
+        }
+        const pets = await pets_service_1.petsService.listArchivedByOwner(uid);
+        res.status(200).json({ data: pets });
+    },
+    reactivate: async (req, res) => {
+        const id = String(req.params.id);
+        const pet = await pets_service_1.petsService.getById(id);
+        if (!pet) {
+            throw new api_error_1.ApiError(404, "NOT_FOUND", "Pet not found");
+        }
+        if (pet.ownerId !== req.user?.uid && req.user?.role !== "admin") {
+            throw new api_error_1.ApiError(403, "FORBIDDEN", "Cannot reactivate this pet");
+        }
+        const updated = await pets_service_1.petsService.reactivate(id);
+        res.status(200).json({ data: updated });
+    },
     getById: async (req, res) => {
         const id = String(req.params.id);
         const pet = await pets_service_1.petsService.getById(id);

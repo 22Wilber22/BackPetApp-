@@ -3,6 +3,13 @@ import { nowIso } from "../utils/time";
 
 const remindersCollection = firestoreDb.collection("reminders");
 
+const withDoseRecords = async (doc: FirebaseFirestore.QueryDocumentSnapshot): Promise<Record<string, unknown>> => {
+  const data = doc.data();
+  const dosesSnapshot = await remindersCollection.doc(doc.id).collection("dose_records").get();
+  const doseRecords = dosesSnapshot.docs.map((doseDoc) => doseDoc.data());
+  return { ...data, doseRecords };
+};
+
 export const remindersService = {
   async create(payload: Record<string, unknown>) {
     const doc = remindersCollection.doc();
@@ -11,9 +18,29 @@ export const remindersService = {
     return data;
   },
 
+  async getById(id: string) {
+    const doc = await remindersCollection.doc(id).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  },
+
   async listByPet(petId: string) {
     const snapshot = await remindersCollection.where("petId", "==", petId).get();
-    return snapshot.docs.map((doc) => doc.data());
+    const reminders = await Promise.all(snapshot.docs.map(withDoseRecords));
+    return reminders;
+  },
+
+  async listByPetIds(petIds: string[]) {
+    if (petIds.length === 0) {
+      return [];
+    }
+
+    const snapshots = await Promise.all(
+      petIds.map((petId) => remindersCollection.where("petId", "==", petId).get())
+    );
+    const allDocs = snapshots.flatMap((snapshot) => snapshot.docs);
+    const reminders = await Promise.all(allDocs.map(withDoseRecords));
+    return reminders;
   },
 
   async update(id: string, patch: Record<string, unknown>) {
