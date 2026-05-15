@@ -99,8 +99,16 @@ export const patientsService = {
   },
 
   async listHistory(petId: string) {
-    const snapshot = await historyCollection.where("petId", "==", petId).orderBy("fecha", "desc").get();
-    return snapshot.docs.map((doc) => doc.data());
+    // orderBy("fecha") + where("petId") across different fields requires a composite index.
+    // Sort in memory to avoid FAILED_PRECONDITION errors.
+    const snapshot = await historyCollection.where("petId", "==", petId).get();
+    return snapshot.docs
+      .map((doc) => doc.data())
+      .sort((a, b) => {
+        const fa = String(a.fecha ?? "");
+        const fb = String(b.fecha ?? "");
+        return fb > fa ? 1 : -1;
+      });
   },
 
   async addHistoryRevision(actor: ActorContext, recordId: string, payload: Record<string, unknown>) {

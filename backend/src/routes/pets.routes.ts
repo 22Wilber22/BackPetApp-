@@ -10,7 +10,10 @@ export const petsRouter = Router();
 
 petsRouter.post("/pets", requireAuth, sensitiveRateLimit, validate(createPetSchema), petsController.create);
 petsRouter.get("/pets/my", requireAuth, petsController.listMine);
+petsRouter.get("/pets/my/archived", requireAuth, petsController.listMineArchived);
 petsRouter.patch("/pets/:id/deactivate", requireAuth, validate(petIdParamSchema), petsController.deactivate);
+petsRouter.patch("/pets/:id/reactivate", requireAuth, validate(petIdParamSchema), petsController.reactivate);
+petsRouter.patch("/pets/:id", requireAuth, validate(petIdParamSchema), petsController.update);
 petsRouter.get("/pets/:id", requireAuth, validate(petIdParamSchema), petsController.getById);
 petsRouter.patch("/pets/:id/assign-vet", requireAuth, validate(assignVetSchema), petsController.assignVet);
 petsRouter.patch("/pets/:id/unassign-vet", requireAuth, validate(petIdParamSchema), petsController.unassignVet);

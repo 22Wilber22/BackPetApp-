@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const validate = (schema: z.ZodTypeAny) => (req: Request, _res: Response, next: NextFunction): void => {
   const parsed = schema.safeParse({
-    body: req.body,
+    body: req.body ?? {},   // GET requests have no body — default to {} so z.object({}) passes
     params: req.params,
     query: req.query
   });

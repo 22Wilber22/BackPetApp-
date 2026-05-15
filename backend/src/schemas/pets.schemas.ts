@@ -12,7 +12,7 @@ export const createPetSchema = z.object({
     fechaNacimiento: z.string().datetime().nullable().optional(),
     alergias: z.string().nullable().optional(),
     condicionesCronicas: z.string().nullable().optional(),
-    fotoUrl: z.string().url().nullable().optional()
+    fotoUrl: z.string().url().max(2048).nullable().optional()
   }).superRefine((body, ctx) => {
     if (body.usaVeterinaria && !body.vetId) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "vetId is required when usaVeterinaria=true", path: ["vetId"] });

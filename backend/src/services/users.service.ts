@@ -21,18 +21,13 @@ export const usersService = {
   },
 
   async update(uid: string, patch: Partial<UserModel>): Promise<UserModel> {
-    const current = await this.getByUid(uid);
-    if (!current) {
-      throw new Error("User not found");
-    }
+    // Usar merge para evitar el read previo innecesario
+    const updatedAt = nowIso();
+    await usersCollection.doc(uid).set({ ...patch, updatedAt }, { merge: true });
 
-    const updated: UserModel = {
-      ...current,
-      ...patch,
-      updatedAt: nowIso()
-    };
-
-    await usersCollection.doc(uid).set(updated);
+    // Un solo read para devolver el documento actualizado completo
+    const updated = await this.getByUid(uid);
+    if (!updated) throw new Error("User not found");
     return updated;
   },
 

@@ -5,36 +5,20 @@ const petsCollection = firestoreDb.collection("pets");
 
 export const reportsService = {
   async appointmentsByPeriod(clinicId: string | null, from?: string, to?: string) {
-    let query: FirebaseFirestore.Query = appointmentsCollection;
-
-    if (clinicId) {
-      query = query.where("clinicId", "==", clinicId);
-    }
+    // where("clinicId") + where("schedule", range) + orderBy("schedule") requires a composite
+    // index that may not be deployed. Apply range and sort in memory to avoid FAILED_PRECONDITION.
+    let query: FirebaseFirestore.Query = clinicId
+      ? appointmentsCollection.where("clinicId", "==", clinicId)
+      : appointmentsCollection.limit(500);
 
     const snapshot = await query.get();
-    const all = snapshot.docs.map((doc) => doc.data() as Record<string, unknown>);
+    let results = snapshot.docs.map((doc) => doc.data() as Record<string, unknown>);
 
-    return all.filter((item) => {
-      const scheduleRaw = item.schedule;
-      if (typeof scheduleRaw !== "string") {
-        return false;
-      }
+    if (from) results = results.filter((r) => String(r.schedule ?? "") >= from);
+    if (to)   results = results.filter((r) => String(r.schedule ?? "") <= to);
 
-      const schedule = Date.parse(scheduleRaw);
-      if (Number.isNaN(schedule)) {
-        return false;
-      }
-
-      if (from && schedule < Date.parse(from)) {
-        return false;
-      }
-
-      if (to && schedule > Date.parse(to)) {
-        return false;
-      }
-
-      return true;
-    });
+    results.sort((a, b) => (String(b.schedule ?? "") > String(a.schedule ?? "") ? 1 : -1));
+    return results.slice(0, 500);
   },
 
   async patientsSummaryByVet(clinicId: string | null) {

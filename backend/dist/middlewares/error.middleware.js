@@ -4,6 +4,12 @@ exports.errorHandler = void 0;
 const zod_1 = require("zod");
 const logger_1 = require("../utils/logger");
 const errorHandler = (err, req, res, _next) => {
+    // Handle body-parser / express payload too large
+    // Some body parsers (express.json) set `type` or `status` on the error
+    if (err?.type === "entity.too.large" || err?.status === 413) {
+        res.status(413).json({ error: true, code: "PAYLOAD_TOO_LARGE", message: "La imagen es demasiado pesada. Reduce su tamaño o sube una versión más pequeña (máx 5 MB)." });
+        return;
+    }
     const statusCode = err.statusCode ?? 500;
     const code = err.code ?? "INTERNAL_ERROR";
     if (err instanceof zod_1.ZodError) {

@@ -14,7 +14,7 @@ exports.createPetSchema = zod_1.z.object({
         fechaNacimiento: zod_1.z.string().datetime().nullable().optional(),
         alergias: zod_1.z.string().nullable().optional(),
         condicionesCronicas: zod_1.z.string().nullable().optional(),
-        fotoUrl: zod_1.z.string().url().nullable().optional()
+        fotoUrl: zod_1.z.string().url().max(2048).nullable().optional()
     }).superRefine((body, ctx) => {
         if (body.usaVeterinaria && !body.vetId) {
             ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "vetId is required when usaVeterinaria=true", path: ["vetId"] });

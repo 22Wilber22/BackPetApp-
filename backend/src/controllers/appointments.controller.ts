@@ -3,6 +3,7 @@ import { ApiError } from "../utils/api-error";
 import { appointmentsService } from "../services/appointments.service";
 import { petsService } from "../services/pets.service";
 import { usersService } from "../services/users.service";
+import { logger } from "../utils/logger";
 
 export const appointmentsController = {
   create: async (req: Request, res: Response): Promise<void> => {
@@ -37,8 +38,7 @@ export const appointmentsController = {
       throw new ApiError(404, "NOT_FOUND", "Pet not found");
     }
 
-    // DEBUG LOG
-    console.log(`[APPOINTMENT CREATE] User ${uid} (${role}) creating appointment for pet ${pet.id} (clinicId: ${pet.clinicId})`);
+    logger.debug({ uid, role, petId: pet.id, clinicId: pet.clinicId }, "appointment create");
 
     const payload = {
       ownerId: String(body.ownerId ?? pet.ownerId),
@@ -133,20 +133,25 @@ export const appointmentsController = {
 
   updateStatus: async (req: Request, res: Response): Promise<void> => {
     const id = String(req.params.id);
-    const updated = await appointmentsService.updateStatus(id, req.body.status);
-    if (!updated) {
+
+    // 1. Leer primero — sin modificar nada todavía
+    const current = await appointmentsService.getById(id);
+    if (!current) {
       throw new ApiError(404, "NOT_FOUND", "Appointment not found");
     }
 
+    // 2. Verificar permisos ANTES de escribir
     const role = req.user?.role;
     const uid = req.user?.uid ?? "";
     const actorClinicId = req.user?.clinicId ?? null;
-    const isAssigned = updated.assistantIds.includes(uid) || updated.vetId === uid;
-    const isClinicLead = (role === "jefe" || role === "recepcionista" || role === "asistente") && actorClinicId === updated.clinicId;
+    const isAssigned = current.assistantIds.includes(uid) || current.vetId === uid;
+    const isClinicLead = (role === "jefe" || role === "recepcionista" || role === "asistente") && actorClinicId === current.clinicId;
     if (!(role === "admin" || isAssigned || isClinicLead)) {
       throw new ApiError(403, "FORBIDDEN", "No permissions to update this appointment");
     }
 
+    // 3. Solo escribir si los permisos son válidos
+    const updated = await appointmentsService.updateStatus(id, req.body.status);
     res.status(200).json({ data: updated });
   },
 

@@ -1,6 +1,7 @@
 import { firestoreDb } from "../config/firebase";
 import { AppointmentModel, AppointmentStatus } from "../models/appointment.model";
 import { nowIso } from "../utils/time";
+import { logger } from "../utils/logger";
 
 const appointmentsCollection = firestoreDb.collection("appointments");
 
@@ -20,37 +21,38 @@ export const appointmentsService = {
   },
 
   async listByActor(uid: string, role: string, clinicId: string | null): Promise<AppointmentModel[]> {
-    let query: FirebaseFirestore.Query = appointmentsCollection;
+    // NOTE: Combining where("field") + orderBy("otherField") requires a composite Firestore
+    // index that may not exist. Sort in memory instead to avoid FAILED_PRECONDITION errors.
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>;
+
     if (role === "admin") {
-      query = appointmentsCollection;
+      query = appointmentsCollection.limit(200);
     } else if (role === "usuario") {
-      query = query.where("ownerId", "==", uid);
+      query = appointmentsCollection.where("ownerId", "==", uid);
     } else if (role === "veterinario") {
-      query = query.where("vetId", "==", uid);
+      query = appointmentsCollection.where("vetId", "==", uid);
     } else if (role === "jefe" || role === "recepcionista" || role === "asistente") {
-      if (!clinicId) {
-        return [];
-      }
-      query = query.where("clinicId", "==", clinicId);
+      if (!clinicId) return [];
+      query = appointmentsCollection.where("clinicId", "==", clinicId);
+    } else {
+      return [];
     }
 
     const snapshot = await query.get();
     const results = snapshot.docs
       .map((doc) => doc.data() as AppointmentModel)
-      .sort((a, b) => {
-        const aTime = Date.parse(a.schedule);
-        const bTime = Date.parse(b.schedule);
-        return bTime - aTime;
-      })
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
       .slice(0, 100);
 
-    // DEBUG LOG
-    console.log(`[APPOINTMENTS LIST] uid=${uid} role=${role} clinicId=${clinicId} returned=${results.length} items`);
-    results.slice(0, 3).forEach((item, i) => {
-      console.log(`  [${i}] petId=${item.petId} ownerId=${item.ownerId} vetId=${item.vetId} clinicId=${item.clinicId} schedule=${item.schedule}`);
-    });
-
+    logger.debug({ uid, role, clinicId, count: results.length }, "appointments listed");
     return results;
+  },
+
+  async getById(id: string): Promise<AppointmentModel | null> {
+    const ref = appointmentsCollection.doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return null;
+    return doc.data() as AppointmentModel;
   },
 
   async updateStatus(id: string, status: AppointmentStatus): Promise<AppointmentModel | null> {

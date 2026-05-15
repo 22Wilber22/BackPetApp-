@@ -49,29 +49,22 @@ export const petsService = {
 
   async deactivate(id: string): Promise<PetModel | null> {
     const pet = await this.getById(id);
-    if (!pet) {
-      return null;
-    }
+    if (!pet) return null;
 
     const archivedAt = nowIso();
-    const deleteAfter = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString();
+    const deleteAfterAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString();
+    const updatedAt = nowIso();
 
-    await petsCollection.doc(id).set(
-      {
-        activo: false,
-        archivedAt,
-        deleteAfterAt: deleteAfter,
-        updatedAt: nowIso()
-      },
-      { merge: true }
-    );
+    const patch = { activo: false, archivedAt, deleteAfterAt, updatedAt };
+    await petsCollection.doc(id).set(patch, { merge: true });
 
     const ownerPets = await petsCollection.where("ownerId", "==", pet.ownerId).where("activo", "==", true).get();
     if (ownerPets.empty) {
       await usersService.setHasPet(pet.ownerId, false);
     }
 
-    return this.getById(id);
+    // Construir el objeto localmente — evita el 3er roundtrip a Firestore
+    return { ...pet, ...patch };
   },
 
   async assignVet(id: string, vetId: string, clinicId: string | null): Promise<PetModel | null> {
@@ -97,6 +90,29 @@ export const petsService = {
       },
       { merge: true }
     );
+    return this.getById(id);
+  },
+
+  async listArchivedByOwner(ownerId: string): Promise<PetModel[]> {
+    const query = await petsCollection.where("ownerId", "==", ownerId).where("activo", "==", false).get();
+    return query.docs.map(mapDoc);
+  },
+
+  async reactivate(id: string): Promise<PetModel | null> {
+    const pet = await this.getById(id);
+    if (!pet) return null;
+
+    const patch = { activo: true, archivedAt: null, deleteAfterAt: null, updatedAt: nowIso() };
+    await petsCollection.doc(id).set(patch, { merge: true });
+
+    await usersService.setHasPet(pet.ownerId, true);
+
+    // Construir el objeto localmente — evita el 3er roundtrip a Firestore
+    return { ...pet, ...patch };
+  },
+
+  async update(id: string, data: Partial<Omit<PetModel, "id" | "ownerId" | "createdAt">>): Promise<PetModel | null> {
+    await petsCollection.doc(id).set({ ...data, updatedAt: nowIso() }, { merge: true });
     return this.getById(id);
   }
 };

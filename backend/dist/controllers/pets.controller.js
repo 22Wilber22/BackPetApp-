@@ -35,6 +35,38 @@ exports.petsController = {
         const updated = await pets_service_1.petsService.deactivate(id);
         res.status(200).json({ data: updated });
     },
+    listMineArchived: async (req, res) => {
+        const uid = req.user?.uid;
+        if (!uid) {
+            throw new api_error_1.ApiError(401, "UNAUTHORIZED", "Authentication required");
+        }
+        const pets = await pets_service_1.petsService.listArchivedByOwner(uid);
+        res.status(200).json({ data: pets });
+    },
+    reactivate: async (req, res) => {
+        const id = String(req.params.id);
+        const pet = await pets_service_1.petsService.getById(id);
+        if (!pet) {
+            throw new api_error_1.ApiError(404, "NOT_FOUND", "Pet not found");
+        }
+        if (pet.ownerId !== req.user?.uid && req.user?.role !== "admin") {
+            throw new api_error_1.ApiError(403, "FORBIDDEN", "Cannot reactivate this pet");
+        }
+        const updated = await pets_service_1.petsService.reactivate(id);
+        res.status(200).json({ data: updated });
+    },
+    update: async (req, res) => {
+        const id = String(req.params.id);
+        const pet = await pets_service_1.petsService.getById(id);
+        if (!pet) {
+            throw new api_error_1.ApiError(404, "NOT_FOUND", "Pet not found");
+        }
+        if (pet.ownerId !== req.user?.uid && req.user?.role !== "admin") {
+            throw new api_error_1.ApiError(403, "FORBIDDEN", "Cannot update this pet");
+        }
+        const updated = await pets_service_1.petsService.update(id, req.body);
+        res.status(200).json({ data: updated });
+    },
     getById: async (req, res) => {
         const id = String(req.params.id);
         const pet = await pets_service_1.petsService.getById(id);
@@ -99,7 +131,11 @@ exports.petsController = {
         res.status(201).json({ data: { id: doc.id } });
     },
     listHealthRecords: async (req, res) => {
-        const snapshot = await firebase_1.firestoreDb.collection("pet_health_records").where("petId", "==", req.params.id).get();
+        const snapshot = await firebase_1.firestoreDb
+            .collection("pet_health_records")
+            .where("petId", "==", req.params.id)
+            .where("archived", "==", false)
+            .get();
         res.status(200).json({ data: snapshot.docs.map((doc) => doc.data()) });
     },
     addHealthRecordRevision: async (req, res) => {
@@ -221,8 +257,12 @@ exports.petsController = {
         const snapshot = await firebase_1.firestoreDb.collection("pet_medication_notes").doc(medId).collection("logs").get();
         res.status(200).json({ data: snapshot.docs.map((doc) => doc.data()) });
     },
-    dueMedications: async (_req, res) => {
-        const snapshot = await firebase_1.firestoreDb.collection("pet_medication_notes").where("activo", "==", true).get();
+    dueMedications: async (req, res) => {
+        const snapshot = await firebase_1.firestoreDb
+            .collection("pet_medication_notes")
+            .where("petId", "==", req.params.id)
+            .where("activo", "==", true)
+            .get();
         res.status(200).json({ data: snapshot.docs.map((doc) => doc.data()) });
     }
 };
